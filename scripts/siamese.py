@@ -74,7 +74,7 @@ class disc_net(nn.Module):
             nn.Linear(100, 50),
             nn.ReLU(True),
             nn.Linear(50,2),
-            nn.LogSoftmax()
+            nn.LogSoftmax(dim=1)
         )
 
     def discriminate(self, input1, input2):
@@ -89,8 +89,8 @@ criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model1.parameters(), lr=learning_rate)
 
 if use_cuda:
-	model1.cuda()
-	criterion.cuda()
+	model1 = model1.cuda()
+	criterion = criterion.cuda()
 
 ae_loss = []
 
@@ -104,7 +104,7 @@ for epoch in range(1):
         # build data pairs
         inpt = record_formatter(raw.iloc[i])
         if use_cuda:
-                inpt.cuda()
+                inpt = inpt.cuda()
 
         # forward
         otpt = model1.autoencode(inpt)
@@ -123,6 +123,8 @@ for epoch in range(1):
     
 model1.eval()
 
+print('\n\nfinished training AE\n\n')
+
 # save autoencoder network parameters
 torch.save(model1.state_dict(), ''.join(('../checkpoints/', str(timestamp), '.discriminator_model')))
 
@@ -134,8 +136,8 @@ criterion = nn.NLLLoss()
 optimizer = torch.optim.Adam(model2.parameters(), lr=learning_rate)
 
 if use_cuda:
-	model2.cuda()
-	criterion.cuda()
+	model2 = model2.cuda()
+	criterion = criterion.cuda()
 
 disc_loss = []
 diff = 1
@@ -147,16 +149,22 @@ for epoch in range(1):
     
     for i in range(raw.shape[0]-diff):
         # build data pairs
-        inpt1 = model1.encode(record_formatter(raw.iloc[i]))
-        inpt2 = model1.encode(record_formatter(raw.iloc[i+diff]))
-        label = 1 if (raw.iloc[i]['Cluster ID'] == raw.iloc[i+diff]['Cluster ID']) else 0
-        label = Variable(torch.LongTensor([label]))
-        
         if use_cuda:
-                inpt1.cuda()
-                inpt2.cuda()
-                label.cuda()
-
+                inpt1 = record_formatter(raw.iloc[i])
+                inpt1 = inpt1.cuda()
+                inpt1 = model1.encode(inpt1)
+                inpt2 = record_formatter(raw.iloc[i+diff])
+                inpt2 = inpt2.cuda()
+                inpt2 = model1.encode(inpt2)
+                label = 1 if (raw.iloc[i]['Cluster ID'] == raw.iloc[i+diff]['Cluster ID']) else 0
+                label = Variable(torch.LongTensor([label]))
+                label = label.cuda()
+        else:
+                inpt1 = model1.encode(record_formatter(raw.iloc[i]))
+                inpt2 = model1.encode(record_formatter(raw.iloc[i+diff]))
+                label = 1 if (raw.iloc[i]['Cluster ID'] == raw.iloc[i+diff]['Cluster ID']) else 0
+                label = Variable(torch.LongTensor([label]))
+        
         # forward
         otpt = model2.discriminate(inpt1, inpt2)
         loss = criterion(otpt, label)
@@ -173,6 +181,8 @@ for epoch in range(1):
     disc_loss.append(temp_loss.data[0]/raw.shape[0])
     
 model2.eval()
+
+print('\n\nfinished training discriminator\n\n')
 
 # save autoencoder network parameters
 torch.save(model2.state_dict(), ''.join(('../checkpoints/', str(timestamp), '.autoencoder_model')))
