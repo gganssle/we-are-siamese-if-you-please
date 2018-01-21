@@ -74,7 +74,8 @@ class disc_net(nn.Module):
             nn.Linear(100, 50),
             nn.ReLU(True),
             nn.Linear(50,2),
-            nn.LogSoftmax(dim=1)
+            nn.LogSoftmax()
+            #nn.LogSoftmax(dim=1)
         )
 
     def discriminate(self, input1, input2):
@@ -97,7 +98,8 @@ ae_loss = []
 model1.train()
 
 # train autoencoder
-for epoch in range(1):
+for epoch in range(100):
+    print('autoencoder epoch', epoch)
     temp_loss = 0
     
     for i in range(raw.shape[0]):
@@ -120,13 +122,13 @@ for epoch in range(1):
 
     # logging
     ae_loss.append(temp_loss.data[0]/raw.shape[0])
-    
+
 model1.eval()
 
 print('\n\nfinished training AE\n\n')
 
 # save autoencoder network parameters
-torch.save(model1.state_dict(), ''.join(('../checkpoints/', str(timestamp), '.discriminator_model')))
+torch.save(model1, ''.join(('../checkpoints/', str(timestamp), '.discriminator_model')))
 
 # init params for training discriminator
 learning_rate = 0.001
@@ -144,7 +146,8 @@ diff = 1
 model2.train()
 
 # train discriminator
-for epoch in range(1):
+for epoch in range(100):
+    print('discriminator epoch', epoch)
     temp_loss = 0
     
     for i in range(raw.shape[0]-diff):
@@ -185,7 +188,7 @@ model2.eval()
 print('\n\nfinished training discriminator\n\n')
 
 # save autoencoder network parameters
-torch.save(model2.state_dict(), ''.join(('../checkpoints/', str(timestamp), '.autoencoder_model')))
+torch.save(model2, ''.join(('../checkpoints/', str(timestamp), '.autoencoder_model')))
 
 # save losses
 with open('../checkpoints/losses.dat', 'w') as f:
