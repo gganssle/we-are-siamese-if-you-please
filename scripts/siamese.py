@@ -8,6 +8,9 @@ import time
 # stamp the time
 timestamp = time.time()
 
+# check for CUDA
+use_cuda = torch.cuda.is_available()
+
 # load in data
 raw = pd.read_csv('../dat/schools_w_clusters.csv')
 raw = raw[['Cluster ID', 'Id', 'Site name', 'Address', 'Zip', 'Phone']]
@@ -85,6 +88,10 @@ model1 = ae_net()
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model1.parameters(), lr=learning_rate)
 
+if use_cuda:
+	model1.cuda()
+	criterion.cuda()
+
 ae_loss = []
 
 model1.train()
@@ -96,6 +103,8 @@ for epoch in range(1):
     for i in range(raw.shape[0]):
         # build data pairs
         inpt = record_formatter(raw.iloc[i])
+        if use_cuda:
+                inpt.cuda()
 
         # forward
         otpt = model1.autoencode(inpt)
@@ -124,6 +133,10 @@ model2 = disc_net()
 criterion = nn.NLLLoss()
 optimizer = torch.optim.Adam(model2.parameters(), lr=learning_rate)
 
+if use_cuda:
+	model2.cuda()
+	criterion.cuda()
+
 disc_loss = []
 diff = 1
 model2.train()
@@ -139,6 +152,11 @@ for epoch in range(1):
         label = 1 if (raw.iloc[i]['Cluster ID'] == raw.iloc[i+diff]['Cluster ID']) else 0
         label = Variable(torch.LongTensor([label]))
         
+        if use_cuda:
+                inpt1.cuda()
+                inpt2.cuda()
+                label.cuda()
+
         # forward
         otpt = model2.discriminate(inpt1, inpt2)
         loss = criterion(otpt, label)
