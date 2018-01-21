@@ -98,7 +98,7 @@ ae_loss = []
 model1.train()
 
 # train autoencoder
-for epoch in range(100):
+for epoch in range(50):
     print('autoencoder epoch', epoch)
     temp_loss = 0
     
@@ -146,7 +146,7 @@ diff = 1
 model2.train()
 
 # train discriminator
-for epoch in range(100):
+for epoch in range(50):
     print('discriminator epoch', epoch)
     temp_loss = 0
     
